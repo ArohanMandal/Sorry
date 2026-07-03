@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Just for You</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lato:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --pink: #ff8fab;
+      --pink-dark: #e8607c;
+      --soft-bg: #fff0f5;
+      --text-dark: #3a3a3a;
+      --text-mid: #666;
+      --text-light: #aaa;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #fde8f0 0%, #e8d5f5 50%, #d0e8ff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      font-family: 'Lato', sans-serif;
+    }
+
+    /* Ambient particles behind everything */
+    #particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.18;
+      animation: drift linear infinite;
+    }
+
+    @keyframes drift {
+      0%   { transform: translateY(110vh) scale(0.8); opacity: 0; }
+      10%  { opacity: 0.18; }
+      90%  { opacity: 0.18; }
+      100% { transform: translateY(-10vh) scale(1.1); opacity: 0; }
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: rgba(255,255,255,0.82);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      width: 92%;
+      max-width: 440px;
+      padding: 44px 34px 38px;
+      border-radius: 28px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.13), 0 0 0 1px rgba(255,255,255,0.6);
+      text-align: center;
+      overflow: hidden;
+    }
+
+    /* progress dots */
+    #progress {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e0c8d8;
+      transition: background 0.4s, transform 0.4s;
+    }
+
+    .dot.active {
+      background: var(--pink);
+      transform: scale(1.3);
+    }
+
+    .dot.done {
+      background: #d4a0b8;
+    }
+
+    /* emoji */
+    .emoji {
+      font-size: 62px;
+      display: block;
+      margin-bottom: 14px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.1); }
+    }
+
+    /* headings */
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-dark);
+      margin-bottom: 16px;
+      line-height: 1.3;
+    }
+
+    h1 em {
+      color: var(--pink-dark);
+      font-style: italic;
+    }
+
+    /* body text */
+    .body-text {
+      font-size: 15.5px;
+      color: var(--text-mid);
+      line-height: 1.85;
+      margin-bottom: 30px;
+      font-weight: 300;
+    }
+
+    .body-text strong {
+      color: var(--text-dark);
+      font-weight: 400;
+    }
+
+    /* quote block */
+    .quote {
+      background: linear-gradient(135deg, #fff0f5, #f5e8ff);
+      border-left: 3px solid var(--pink);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin: 18px 0 26px;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 15px;
+      color: #7a4060;
+      line-height: 1.7;
+    }
+
+    /* buttons */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: linear-gradient(135deg, #ff8fab, #e8607c);
+      border: none;
+      padding: 13px 30px;
+      border-radius: 50px;
+      font-size: 15px;
+      font-family: 'Lato', sans-serif;
+      font-weight: 400;
+      color: #fff;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 6px 20px rgba(232,96,124,0.35);
+    }
+
+    button:hover {
+      transform: translateY(-3px) scale(1.04);
+      box-shadow: 0 10px 28px rgba(232,96,124,0.45);
+    }
+
+    button.secondary {
+      background: linear-gradient(135deg, #b0c8e8, #8ab0d8);
+      box-shadow: 0 6px 20px rgba(100,140,200,0.3);
+    }
+
+    button.secondary:hover {
+      box-shadow: 0 10px 28px rgba(100,140,200,0.4);
+    }
+
+    /* ── Page-in / Page-out animations ── */
+    .page-enter {
+      animation: pageEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes pageEnter {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1);    }
+    }
+
+    /* ── Typewriter ── */
+    .typewriter {
+      display: inline-block;
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 2px solid var(--pink);
+      animation: typing 2.4s steps(28, end) forwards,
+                 blink 0.7s step-end infinite;
+      max-width: 100%;
+    }
+
+    @keyframes typing {
+      from { width: 0; }
+      to   { width: 100%; }
+    }
+
+    @keyframes blink {
+      50% { border-color: transparent; }
+    }
+
+    /* ── Floating hearts (yes page) ── */
+    .floaters {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .floaters span {
+      position: absolute;
+      bottom: -30px;
+      font-size: 22px;
+      animation: floatUp 4.5s ease-in infinite;
+      opacity: 0;
+    }
+
+    @keyframes floatUp {
+      0%   { transform: translateY(0)    rotate(0deg);   opacity: 0; }
+      10%  { opacity: 0.9; }
+      80%  { opacity: 0.7; }
+      100% { transform: translateY(-580px) rotate(20deg); opacity: 0; }
+    }
+
+    /* ── Rain (no page) ── */
+    .rain-wrap {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .rain-wrap span {
+      position: absolute;
+      top: -30px;
+      font-size: 18px;
+      animation: rainFall linear infinite;
+      opacity: 0;
+    }
+
+    @keyframes rainFall {
+      0%   { transform: translateY(0);    opacity: 0; }
+      5%   { opacity: 0.7; }
+      95%  { opacity: 0.5; }
+      100% { transform: translateY(620px); opacity: 0; }
+    }
+
+    /* memory strip */
+    .memory-strip {
+      background: linear-gradient(135deg, #fff5f8, #f8f0ff);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      font-size: 13.5px;
+      color: #8a5070;
+      line-height: 1.7;
+      font-style: italic;
+    }
+
+    /* final promise card */
+    .promise-list {
+      text-align: left;
+      margin: 0 0 24px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .promise-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid #f0e0e8;
+      font-size: 14.5px;
+      color: var(--text-dark);
+      font-weight: 300;
+    }
+
+    .promise-list li:last-child { border-bottom: none; }
+
+    .promise-list li span.icon { font-size: 18px; flex-shrink: 0; }
+
+    /* big answer page titles */
+    .big-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      font-weight: 700;
+      margin: 10px 0 14px;
+    }
+
+    .big-title.yes-color  { color: #c0344e; }
+    .big-title.wait-color { color: #5a7ea0; }
+
+    /* heartbeat line */
+    .heartbeat-bar {
+      width: 100%;
+      height: 36px;
+      margin: 14px 0 22px;
+    }
+
+    .heartbeat-bar path {
+      stroke: var(--pink);
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 300;
+      stroke-dashoffset: 300;
+      animation: drawLine 2s ease forwards 0.3s;
+    }
+
+    @keyframes drawLine {
+      to { stroke-dashoffset: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Ambient background particles -->
+<div id="particles"></div>
+
+<div class="card" id="app"></div>
+
+<script>
+  // ── Ambient particles ──────────────────────────────────────
+  const colors = ['#ffb3c6','#ffd6e7','#c8b3ff','#b3d4ff','#ffc8a0'];
+  const pContainer = document.getElementById('particles');
+  for (let i = 0; i < 22; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 6 + Math.random() * 18;
+    p.style.cssText = `
+      width:${size}px; height:${size}px;
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${8 + Math.random()*14}s;
+      animation-delay:${Math.random()*12}s;
+    `;
+    pContainer.appendChild(p);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────
+  const app = document.getElementById('app');
+  const TOTAL = 5;
+  let currentPage = 1;
+
+  function progressDots(active) {
+    return `<div id="progress">${
+      Array.from({length: TOTAL}, (_, i) => {
+        const n = i + 1;
+        const cls = n < active ? 'dot done' : n === active ? 'dot active' : 'dot';
+        return `<div class="${cls}"></div>`;
+      }).join('')
+    }</div>`;
+  }
+
+  function render(html) {
+    app.innerHTML = html;
+    app.querySelectorAll('.card-inner, #app > *').forEach(el => {
+      el.classList && el.classList.add('page-enter');
+    });
+    // add page-enter to card itself
+    app.classList.remove('page-enter');
+    void app.offsetWidth; // reflow
+    app.classList.add('page-enter');
+  }
+
+  function heartbeatSVG() {
+    return `
+      <svg class="heartbeat-bar" viewBox="0 0 300 36" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,18 L40,18 L55,4 L65,32 L78,4 L90,32 L100,18 L120,18 L130,10 L140,26 L150,18 L300,18"/>
+      </svg>`;
+  }
+
+  // ── Pages ─────────────────────────────────────────────────
+
+  function pageOne() {
+    currentPage = 1;
+    render(`
+      ${progressDots(1)}
+      <span class="emoji">✉️</span>
+      <h1><span class="typewriter">Hey… can I talk to you?</span></h1>
+      <p class="body-text">
+        I didn't write a long letter.<br>
+        I made <strong>this</strong> — something that felt more honest<br>
+        than anything I could say out loud.
+      </p>
+      <div class="btn-row">
+        <button onclick="pageTwo()">I'm listening →</button>
+      </div>
+    `);
+  }
+
+  function pageTwo() {
+    currentPage = 2;
+    render(`
+      ${progressDots(2)}
+      <span class="emoji">💔</span>
+      <h1>I <em>know</em> I hurt you.</h1>
+      <p class="body-text">
+        Not once. Not by accident.<br>
+        In ways I should have <strong>known better</strong> than to let happen.
+      </p>
+      <div class="quote">
+        "Hurting someone you care and realising it too late —<br>
+        that's the heaviest kind of silence."
+      </div>
+      <p class="body-text">
+        I sat with that silence for a long time.
+      </p>
+      <div class="btn-row">
+        <button onclick="pageThree()">Continue →</button>
+      </div>
+    `);
+  }
+
+  function pageThree() {
+    currentPage = 3;
+    render(`
+      ${progressDots(3)}
+      <span class="emoji">🙏</span>
+      <h1>I'm <em>genuinely</em> sorry.</h1>
+      <div class="memory-strip">
+        Remember when everything felt easy between us?<br>
+        When laughter came before words, and silence felt safe?<br>
+        I miss that. I miss <em>you</em> feeling safe around me.
+      </div>
+      <p class="body-text">
+        I'm not saying sorry to feel lighter.<br>
+        I'm saying it because <strong>you deserved so much better</strong>,<br>
+        and I want you to know that I know that.
+      </p>
+      <div class="btn-row">
+        <button onclick="pageFour()">One last thing →</button>
+      </div>
+    `);
+  }
+
+  function pageFour() {
+    currentPage = 4;
+    render(`
+      ${progressDots(4)}
+      <span class="emoji">🌸</span>
+      <h1>Ek Sawaal…</h1>
+      ${heartbeatSVG()}
+      <p class="body-text">
+        Maine bahut kuch socha,<br>
+        bahut kuch chaha wapas lena —<br>
+        par sabse pehle <strong>yeh jaanna chahta hoon.</strong>
+      </p>
+      <div class="quote">"Kya aap mujhe maaf kar paayi?"</div>
+      <div class="btn-row">
+        <button onclick="yesPage()">💖 Haan, maaf kiya</button>
+        <button class="secondary" onclick="noPage()">🌧️ Abhi nahi</button>
+      </div>
+    `);
+  }
+
+  function yesPage() {
+    currentPage = 5;
+    render(`
+      <div class="floaters" id="floaters"></div>
+      <span class="emoji">🥹</span>
+      <div class="big-title yes-color">Thank You.</div>
+      <p class="body-text">
+        Yeh do shabd… meri poori duniya badal dete hain.<br>
+        Main jaanta hoon sirf maafi kaafi nahi —<br>
+        <strong>actions se prove karunga, baar baar.</strong>
+      </p>
+      <ul class="promise-list">
+        <li><span class="icon">🤝</span> Hamesha pehle sunuunga, phir bolunga.</li>
+        <li><span class="icon">🕊️</span> Aapki feelings ko kabhi dismiss nahi karunga.</li>
+        <li><span class="icon">🌱</span> Roz thoda behtar banunga — aapke liye, hamare liye.</li>
+        <li><span class="icon">💌</span> Aapko kabhi wonder nahi karne dunga ki aap matter karti ho.</li>
+      </ul>
+      <div class="quote">
+        "Forgiveness is a gift you give yourself —<br>
+        and I'll spend every day making sure you never regret it."
+      </div>
+      <div class="btn-row">
+        <button onclick="pageOne()">🔁 From the start</button>
+      </div>
+    `);
+    launchHearts();
+  }
+
+  function noPage() {
+    currentPage = 5;
+    render(`
+      <div class="rain-wrap" id="rain"></div>
+      <span class="emoji">😔</span>
+      <div class="big-title wait-color">It's okay.</div>
+      <p class="body-text">
+        Main nahi chahunga ki aap sirf mujhe khush karne ke liye maaf karo.<br>
+        <strong>Aapki feelings real hain</strong> — aur woh matter karti hain.
+      </p>
+      <div class="quote">
+        "Kuch dardon ko time chahiye.<br>
+        Main woh time dunga — bina kisi pressure ke."
+      </div>
+      <p class="body-text">
+        Jab bhi aap ready ho —<br>
+        main yahaan rahunga.<br>
+        <strong>Kyunki aap mere liye worth waiting for hain.</strong>
+      </p>
+      <div class="btn-row">
+        <button class="secondary" onclick="pageFour()">← Wapas jaao</button>
+      </div>
+    `);
+    launchRain();
+  }
+
+  // ── Effects ───────────────────────────────────────────────
+
+  function launchHearts() {
+    const wrap = document.getElementById('floaters');
+    if (!wrap) return;
+    const emojis = ['❤️','💖','💗','💓','✨','🌸','💝','🥰'];
+    for (let i = 0; i < 18; i++) {
+      const s = document.createElement('span');
+      s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      s.style.cssText = `
+        left: ${Math.random() * 90}%;
+        animation-delay: ${Math.random() * 4}s;
+        animation-duration: ${3.5 + Math.random() * 3}s;
+        font-size: ${16 + Math.random() * 14}px;
+      `;
+      wrap.appendChild(s);
+    }
+  }
+
+  function launchRain() {
+    const wrap = document.getElementById('rain');
+    if (!wrap) return;
+    const drops = ['🌧️','💧','🌂','☁️'];
+    for (let i = 0; i < 18; i++) {
+      const s = document.createElement('span');
+      s.textContent = drops[Math.floor(Math.random() * drops.length)];
+      s.style.cssText = `
+        left: ${Math.random() * 90}%;
+        animation-delay: ${Math.random() * 3}s;
+        animation-duration: ${2.5 + Math.random() * 2}s;
+        font-size: ${12 + Math.random() * 10}px;
+      `;
+      wrap.appendChild(s);
+    }
+  }
+
+  // ── Start ─────────────────────────────────────────────────
+  pageOne();
+</script>
+</body>
+</html>
