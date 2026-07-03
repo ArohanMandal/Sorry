@@ -326,12 +326,73 @@
     @keyframes drawLine {
       to { stroke-dashoffset: 0; }
     }
+
+    /* ── Music toggle button ── */
+    #music-btn {
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      z-index: 100;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1.5px solid rgba(255,143,171,0.4);
+      box-shadow: 0 4px 18px rgba(232,96,124,0.22);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      padding: 0;
+    }
+
+    #music-btn:hover {
+      transform: scale(1.12);
+      box-shadow: 0 6px 22px rgba(232,96,124,0.35);
+    }
+
+    #music-btn.playing {
+      animation: musicPulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes musicPulse {
+      0%, 100% { box-shadow: 0 4px 18px rgba(232,96,124,0.22); }
+      50%       { box-shadow: 0 4px 28px rgba(232,96,124,0.55); }
+    }
+
+    /* Tooltip */
+    #music-btn::after {
+      content: attr(data-tip);
+      position: absolute;
+      right: 54px;
+      bottom: 50%;
+      transform: translateY(50%);
+      background: rgba(60,30,45,0.78);
+      color: #fff;
+      font-size: 11px;
+      font-family: 'Lato', sans-serif;
+      padding: 4px 9px;
+      border-radius: 8px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    #music-btn:hover::after { opacity: 1; }
   </style>
 </head>
 <body>
 
 <!-- Ambient background particles -->
 <div id="particles"></div>
+
+<!-- Music toggle -->
+<button id="music-btn" onclick="toggleMusic()" data-tip="Soft music" aria-label="Toggle background music">🎵</button>
 
 <div class="card" id="app"></div>
 
@@ -562,6 +623,157 @@
 
   // ── Start ─────────────────────────────────────────────────
   pageOne();
+
+  // ── Ambient Music (Web Audio API — no file needed) ────────
+  let audioCtx = null;
+  let musicPlaying = false;
+  let masterGain = null;
+  let scheduledNodes = [];
+
+  // Soft pentatonic melody — C maj pentatonic: C4 E4 G4 A4 C5 E5 G5
+  // Played gently with sine + slight triangle blend for warmth
+  const NOTES = {
+    C4: 261.63, D4: 293.66, E4: 329.63, G4: 392.00,
+    A4: 440.00, C5: 523.25, E5: 659.25, G5: 783.99,
+    A3: 220.00, G3: 196.00, F3: 174.61, C3: 130.81
+  };
+
+  // Melody sequence: [note, duration(s), velocity(0-1)]
+  const MELODY = [
+    ['C4', 1.2, 0.55], ['E4', 0.8, 0.45], ['G4', 1.0, 0.5],
+    ['A4', 1.4, 0.6],  ['G4', 0.6, 0.4],  ['E4', 1.2, 0.5],
+    ['C4', 1.6, 0.55], ['E4', 0.8, 0.4],  ['G4', 0.8, 0.45],
+    ['C5', 1.4, 0.6],  ['A4', 0.8, 0.5],  ['G4', 1.0, 0.45],
+    ['E4', 1.2, 0.5],  ['D4', 0.8, 0.4],  ['C4', 2.0, 0.55],
+    ['G3', 1.2, 0.35], ['A3', 1.0, 0.38], ['C4', 0.8, 0.45],
+    ['E4', 1.4, 0.5],  ['G4', 1.0, 0.48], ['A4', 0.8, 0.52],
+    ['G4', 0.6, 0.4],  ['E4', 1.2, 0.45], ['C4', 2.4, 0.5],
+  ];
+
+  // Bass pad sequence: low, slow chords
+  const BASS = [
+    ['C3', 4.0, 0.28], ['G3', 4.0, 0.25],
+    ['F3', 4.0, 0.28], ['G3', 4.0, 0.25],
+  ];
+
+  function createCtx() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+    masterGain.connect(audioCtx.destination);
+  }
+
+  function playNote(freq, startTime, duration, velocity, type = 'sine') {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    // Blend sine with a touch of triangle for warmth
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, startTime);
+
+    // Gentle detune ±2 cents for organic feel
+    osc.detune.setValueAtTime((Math.random() - 0.5) * 4, startTime);
+
+    // Envelope: soft attack, long release
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(velocity, startTime + 0.12);
+    gain.gain.setValueAtTime(velocity, startTime + duration - 0.35);
+    gain.gain.linearRampToValueAtTime(0, startTime + duration + 0.4);
+
+    // Soft low-pass filter
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1200 + Math.random() * 400, startTime);
+    filter.Q.setValueAtTime(0.5, startTime);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.5);
+    scheduledNodes.push(osc);
+    return startTime + duration;
+  }
+
+  let melodyLoopTimer = null;
+  let bassLoopTimer = null;
+
+  function scheduleMelodyLoop(startAt) {
+    if (!musicPlaying) return;
+    let t = startAt;
+    for (const [note, dur, vel] of MELODY) {
+      t = playNote(NOTES[note], t, dur, vel * 0.7, 'sine');
+    }
+    // Schedule next loop slightly before this one ends for gapless looping
+    const loopDuration = (t - startAt) * 1000 - 800;
+    melodyLoopTimer = setTimeout(() => scheduleMelodyLoop(t - 0.05), loopDuration);
+  }
+
+  function scheduleBassLoop(startAt) {
+    if (!musicPlaying) return;
+    let t = startAt;
+    for (const [note, dur, vel] of BASS) {
+      t = playNote(NOTES[note], t, dur, vel, 'triangle');
+    }
+    const loopDuration = (t - startAt) * 1000 - 500;
+    bassLoopTimer = setTimeout(() => scheduleBassLoop(t - 0.05), loopDuration);
+  }
+
+  function startMusic() {
+    createCtx();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    musicPlaying = true;
+
+    // Fade master in
+    masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+    masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(0.55, audioCtx.currentTime + 2.5);
+
+    const now = audioCtx.currentTime + 0.1;
+    scheduleMelodyLoop(now);
+    scheduleBassLoop(now);
+
+    const btn = document.getElementById('music-btn');
+    btn.textContent = '🔇';
+    btn.setAttribute('data-tip', 'Pause music');
+    btn.classList.add('playing');
+  }
+
+  function stopMusic() {
+    musicPlaying = false;
+    clearTimeout(melodyLoopTimer);
+    clearTimeout(bassLoopTimer);
+
+    if (masterGain) {
+      masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+      masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1.2);
+    }
+
+    const btn = document.getElementById('music-btn');
+    btn.textContent = '🎵';
+    btn.setAttribute('data-tip', 'Soft music');
+    btn.classList.remove('playing');
+  }
+
+  function toggleMusic() {
+    if (musicPlaying) {
+      stopMusic();
+    } else {
+      startMusic();
+    }
+  }
+
+  // Auto-start music on first user interaction (browser policy)
+  let musicAutoStarted = false;
+  document.addEventListener('click', () => {
+    if (!musicAutoStarted) {
+      musicAutoStarted = true;
+      startMusic();
+    }
+  }, { once: true });
 </script>
 </body>
 </html>
